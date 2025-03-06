@@ -10,10 +10,17 @@ public class UserLambdaHandler implements Function<Object, List<User>> {
 
     @Override
     public List<User> apply(Object input) {
-        // Créer une liste d'utilisateurs
-        User user1 = new User("John", "Doe", 25, "Male", LocalDate.now());
-        User user2 = new User("Jane", "Doe", 28, "Female", LocalDate.now());
+        try {
+            // Créer une liste d'utilisateurs
+            User user1 = new User("John", "Doe", 25, "Male", LocalDate.now());
+            User user2 = new User("Jane", "Doe", 28, "Female", LocalDate.now());
 
-        return Arrays.asList(user1, user2);  // Renvoie la liste d'utilisateurs
+            // Retourne la liste des utilisateurs
+            return Arrays.asList(user1, user2);
+        } catch (Exception e) {
+            // Logge l'erreur pour diagnostiquer
+            System.err.println("Error in Lambda function: " + e.getMessage());
+            throw new RuntimeException("Error processing request: " + e.getMessage());
+        }
     }
 }
