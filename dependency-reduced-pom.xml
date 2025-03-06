@@ -37,6 +37,16 @@
             <goals>
               <goal>shade</goal>
             </goals>
+            <configuration>
+              <minimizeJar>true</minimizeJar>
+              <createDependencyReducedPom>false</createDependencyReducedPom>
+              <artifactSet>
+                <excludes>
+                  <exclude>com.amazonaws:aws-lambda-java-events</exclude>
+                  <exclude>com.amazonaws:aws-lambda-java-core</exclude>
+                </excludes>
+              </artifactSet>
+            </configuration>
           </execution>
         </executions>
       </plugin>
@@ -135,6 +145,12 @@
       <groupId>com.amazonaws</groupId>
       <artifactId>aws-lambda-java-core</artifactId>
       <version>1.2.2</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot.experimental</groupId>
+      <artifactId>spring-boot-thin-layout</artifactId>
+      <version>1.0.26.RELEASE</version>
       <scope>provided</scope>
     </dependency>
   </dependencies>
