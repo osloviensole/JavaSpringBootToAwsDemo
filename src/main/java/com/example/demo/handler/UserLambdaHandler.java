@@ -12,8 +12,8 @@ public class UserLambdaHandler implements Function<Object, List<User>> {
     public List<User> apply(Object input) {
         try {
             // Créer une liste d'utilisateurs
-            User user1 = new User("John", "Doe", 25, "Male", LocalDate.now());
-            User user2 = new User("Jane", "Doe", 28, "Female", LocalDate.now());
+            User user1 = new User("Oslovie", "Nsole", 25, "Male", LocalDate.now());
+            User user2 = new User("Augustin", "Kazadi", 28, "Male", LocalDate.now());
 
             // Retourne la liste des utilisateurs
             return Arrays.asList(user1, user2);
