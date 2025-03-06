@@ -15,5 +15,7 @@ package com.example.demo;
 
 import org.springframework.cloud.function.adapter.aws.FunctionInvoker;
 
+
 public class DemoApplication extends FunctionInvoker {
+
 }
