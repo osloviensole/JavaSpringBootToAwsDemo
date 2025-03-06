@@ -1,17 +1,15 @@
 package com.example.demo.handler;
 
-import com.amazonaws.services.lambda.runtime.Context;
-import com.amazonaws.services.lambda.runtime.RequestHandler;
+import java.util.function.Function;
 import com.example.demo.model.User;
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Arrays;
+import java.time.LocalDate;
 
-public class UserLambdaHandler implements RequestHandler<Object, List<User>> {
+public class UserLambdaHandler implements Function<Object, List<User>> {
 
-    // La méthode handleRequest avec les deux paramètres requis par AWS Lambda
     @Override
-    public List<User> handleRequest(Object input, Context context) {
+    public List<User> apply(Object input) {
         // Créer une liste d'utilisateurs
         User user1 = new User("John", "Doe", 25, "Male", LocalDate.now());
         User user2 = new User("Jane", "Doe", 28, "Female", LocalDate.now());
