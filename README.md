@@ -52,7 +52,7 @@ A CI/CD pipeline is set up with GitHub Actions to automate:
 - **Project build**
 - **Deployment to AWS Lambda**
 
-The GitHub Actions workflow is defined in `.github/workflows/deploy.yml`.
+The GitHub Actions workflow is defined in `.github/workflows/lambda_deployment.yaml`.
 
 ## Authentication with IAM
 The API uses an IAM user with restricted permissions to access AWS Lambda via API Gateway.
