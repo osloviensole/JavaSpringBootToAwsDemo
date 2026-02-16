@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PonaCash Integration Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input[type="text"],
+        input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+
+        button {
+            padding: 10px 15px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #218838;
+        }
+
+        pre {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border: 1px solid #ddd;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>PonaCash Integration Test</h1>
+
+    <div class="form-group">
+        <label>Contribuable Name</label>
+        <input type="text" id="contribName" value="Entreprise Alice">
+    </div>
+    <div class="form-group">
+        <label>Amount (Cout Paye)</label>
+        <input type="number" id="coutPaye" value="5000">
+    </div>
+    <div class="form-group">
+        <label>External ID</label>
+        <input type="text" id="externalId" value="TX-123456">
+    </div>
+
+    <button onclick="submitPayment()">Encrypt & Submit</button>
+
+    <h3>Result:</h3>
+    <pre id="resultOutput">No result yet.</pre>
+
+    <script>
+        async function submitPayment() {
+            const payload = {
+                contribuable: {
+                    name: document.getElementById('contribName').value,
+                    niu: "M051234567890X",
+                    rccm: "CG-BZV-01-2023-B12-00123",
+                    residence_fiscale: "",
+                    tel: "242068518115",
+                    email: "exemple@mail.com",
+                    adresse: "123 Avenue de la République, Brazzaville"
+                },
+                articles: [
+                    {
+                        article_nom: "Abonnement Premium",
+                        article_id: "SUB-001",
+                        article_reference: "REF-ART-2024-X",
+                        quantite: 1,
+                        cout: parseFloat(document.getElementById('coutPaye').value).toFixed(2),
+                        penalite: "0.00"
+                    }
+                ],
+                cout_paye: parseFloat(document.getElementById('coutPaye').value),
+                cout_total: parseFloat(document.getElementById('coutPaye').value),
+                external_id: document.getElementById('externalId').value,
+                numero: "242061245540",
+                numero_agence: "",
+                code_secret: "",
+                type_transaction: "PAGE",
+                operateur: "",
+                message: "Paiement facture",
+                type_operation: "MAKE_TRANSACTION",
+                callback: "https://mon-site.com/callback"
+            };
+
+            document.getElementById('resultOutput').textContent = "Processing...";
+
+            try {
+                const response = await fetch('/test-encryption', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+                document.getElementById('resultOutput').textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('resultOutput').textContent = "Error: " + error.message;
+            }
+        }
+    </script>
+</body>
+
+</html>
