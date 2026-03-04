@@ -22,9 +22,11 @@ public class PonaCashClient {
     @Value("${ponacash.auth.url}")
     private String authUrl;
 
-    // Hardcoded credentials as requested
-    private String solutionReference = "gAAAAABpd-bV5rafzlv-EB72lu0HsRPvC0kL-yOIICLtwE5hcj8CXb2iqdWX_PBEgsh7sfsdIUg_mcasDLXD7mjXOnl25z8a_g==";
-    private String clientUsername = "242061245540";
+    @Value("${ponacash.auth.solution-reference}")
+    private String solutionReference;
+
+    @Value("${ponacash.auth.client-username}")
+    private String clientUsername;
 
     @Value("${ponacash.redirect.url}")
     private String redirectUrl;

@@ -36,48 +36,76 @@ public class PonaCashEncryptionService {
     private static final String PUBLIC_KEY_PEM = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAr4qvJXtRYTD1LqrDJKmJDuKfZyz4I9z3mSgyaHyQAlBshkpVRs00gTfW5j62xXQrd58D97SsKDonZzhxrXgbeFfnYipgQm0JjEm0S34UtQ5Sr2rcTUvhYNvnSh1iO/mRTyz0V7KgycUBbGrHfo4rECFqDilZ9f/2/XElGNCcpAVvntaddl6dtMZlxyGfoUBKIJ1qxv0hTXTDskn99eJ6vSkOPj9rLHPsdK8RHXNjqy60q9mxMEzVEKeQUgWNstG/GTef1PSOYotxA7B5nnlpUyYyIs1lX7j8LOvAhUQ9i8Xag2PMOwDBEQ9dsh1/NzzR/yuIgcTqHwPhWai1CGEwZwIDAQAB";
 
     public PaymentRequest encrypt(PaymentRequest request, String publicKeyPem) throws Exception {
-        // 1. Prepare Data
-        // Create a copy of the request to serialize (excluding crypto fields, though
-        // they are null anyway)
-        // In practice, we just serialize the current state of the DTO which should have
-        // business data
-        String jsonPayload = objectMapper.writeValueAsString(request);
-        byte[] plaintext = jsonPayload.getBytes(StandardCharsets.UTF_8);
+        try {
+            // ==================================================================================
+            // ÉTAPE 1 : GÉNÉRATION DE LA CLÉ DE SESSION (AES-256)
+            // ==================================================================================
+            // On génère une clé AES unique pour cette transaction. C'est du chiffrement
+            // symétrique.
+            // Cette clé servira à chiffrer le gros volume de données (le payload).
+            SecretKey aesKey = generateAesKey();
 
-        // 2. Generate Secrets
-        SecretKey aesKey = generateAesKey();
-        byte[] iv = generateIv();
+            // Génération du Vecteur d'Initialisation (IV) de 12 octets pour AES-GCM
+            // L'IV garantit que deux chiffrements avec la même clé produiront des résultats
+            // différents.
+            byte[] iv = generateIv();
 
-        // 3. AES-GCM Encryption
-        Cipher aesCipher = Cipher.getInstance(AES_GCM_NO_PADDING);
-        GCMParameterSpec gcmParameterSpec = new GCMParameterSpec(GCM_TAG_LENGTH, iv);
-        aesCipher.init(Cipher.ENCRYPT_MODE, aesKey, gcmParameterSpec);
+            // ==================================================================================
+            // ÉTAPE 2 : CHIFFREMENT DU PAYLOAD (AES-GCM)
+            // ==================================================================================
+            // On convertit l'objet PaymentRequest en JSON (sérialisation).
+            String jsonPayload = objectMapper.writeValueAsString(request);
+            byte[] plaintext = jsonPayload.getBytes(StandardCharsets.UTF_8);
 
-        byte[] ciphertextWithTag = aesCipher.doFinal(plaintext);
+            // Configuration du chiffrement AES en mode GCM (Galois/Counter Mode).
+            // Le mode GCM assure à la fois la confidentialité et l'intégrité des données
+            // via un Tag.
+            Cipher aesCipher = Cipher.getInstance(AES_GCM_NO_PADDING);
+            GCMParameterSpec gcmParameterSpec = new GCMParameterSpec(GCM_TAG_LENGTH, iv); // Tag de 128 bits
+            aesCipher.init(Cipher.ENCRYPT_MODE, aesKey, gcmParameterSpec);
 
-        // Extract ciphertext and tag
-        // Java's GCM implementation appends the tag to the end of the ciphertext
-        int tagLengthBytes = 16;
-        int ciphertextLength = ciphertextWithTag.length - tagLengthBytes;
+            // Exécution du chiffrement
+            byte[] ciphertextWithTag = aesCipher.doFinal(plaintext);
 
-        byte[] ciphertext = Arrays.copyOfRange(ciphertextWithTag, 0, ciphertextLength);
-        byte[] tag = Arrays.copyOfRange(ciphertextWithTag, ciphertextLength, ciphertextWithTag.length);
+            // Extraction du Tag d'authentification (les 16 derniers octets du résultat GCM)
+            // Ce tag permettra au serveur de vérifier que les données n'ont pas été
+            // altérées.
+            // Java GCM ajoute le tag à la fin du ciphertext.
+            int tagLengthBytes = 16;
+            int ciphertextLength = ciphertextWithTag.length - tagLengthBytes;
 
-        // 4. RSA-OAEP Encryption of AES Key
-        PublicKey rsaPublicKey = loadPublicKey(publicKeyPem);
-        Cipher rsaCipher = Cipher.getInstance(RSA_OAEP_PADDING);
-        OAEPParameterSpec oaepParams = new OAEPParameterSpec("SHA-256", "MGF1", MGF1ParameterSpec.SHA256,
-                PSource.PSpecified.DEFAULT);
-        rsaCipher.init(Cipher.ENCRYPT_MODE, rsaPublicKey, oaepParams);
-        byte[] encryptedKeyBytes = rsaCipher.doFinal(aesKey.getEncoded());
+            byte[] ciphertext = Arrays.copyOfRange(ciphertextWithTag, 0, ciphertextLength);
+            byte[] tag = Arrays.copyOfRange(ciphertextWithTag, ciphertextLength, ciphertextWithTag.length);
 
-        // 5. Populate Request
-        request.setEncrypted_key(Base64.getEncoder().encodeToString(encryptedKeyBytes));
-        request.setIv(Base64.getEncoder().encodeToString(iv));
-        request.setValidation_payload(Base64.getEncoder().encodeToString(ciphertext));
-        request.setTag(Base64.getEncoder().encodeToString(tag));
+            // ==================================================================================
+            // ÉTAPE 3 : CHIFFREMENT DE LA CLÉ AES (RSA-OAEP)
+            // ==================================================================================
+            // On chiffre la clé AES elle-même avec la Clé Publique RSA de Fouta.
+            // C'est du chiffrement asymétrique : seul Fouta (avec sa clé privée) pourra
+            // déchiffrer la clé AES.
+            // OAEP est un schéma de padding sécurisé obligatoire ici.
+            PublicKey rsaPublicKey = loadPublicKey(publicKeyPem);
+            Cipher rsaCipher = Cipher.getInstance(RSA_OAEP_PADDING);
+            OAEPParameterSpec oaepParams = new OAEPParameterSpec("SHA-256", "MGF1", MGF1ParameterSpec.SHA256,
+                    PSource.PSpecified.DEFAULT);
+            rsaCipher.init(Cipher.ENCRYPT_MODE, rsaPublicKey, oaepParams);
+            byte[] encryptedKeyBytes = rsaCipher.doFinal(aesKey.getEncoded());
 
-        return request;
+            // ==================================================================================
+            // ÉTAPE 4 : ASSEMBLAGE DE LA REQUÊTE FINALE
+            // ==================================================================================
+            // On encode tous les éléments binaires en Base64 pour le transport JSON.
+            // L'objet request est mis à jour avec ces valeurs chiffrées.
+            request.setEncrypted_key(Base64.getEncoder().encodeToString(encryptedKeyBytes));
+            request.setIv(Base64.getEncoder().encodeToString(iv));
+            request.setValidation_payload(Base64.getEncoder().encodeToString(ciphertext));
+            request.setTag(Base64.getEncoder().encodeToString(tag));
+
+            return request;
+
+        } catch (Exception e) {
+            throw new RuntimeException("Erreur lors du chiffrement de la demande de paiement", e);
+        }
     }
 
     private SecretKey generateAesKey() throws Exception {
